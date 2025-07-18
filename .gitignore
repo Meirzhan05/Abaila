@@ -1,0 +1,17 @@
+# Node.js
+server/node_modules/
+server/.env
+
+# macOS and Xcode
+Abaila/DerivedData/
+*.xcworkspace
+*.xcuserdata
+*.xcuserstate
+
+# SwiftPM
+.build/
+.DS_Store
+
+# Others
+.env
+*.log
