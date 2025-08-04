@@ -18,6 +18,10 @@ struct ContentView: View {
                     MapView()
                 }
                 
+                Tab("Create Alert", systemImage: "plus.circle.fill") {
+                    CreateAlertView()
+                }
+                
                 Tab("Alerts", systemImage: "bell") {
                     AlertsView()
                 }

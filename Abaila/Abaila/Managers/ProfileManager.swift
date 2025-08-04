@@ -215,7 +215,7 @@ class ProfileManager: ObservableObject {
         }
         
     }
-}
+} 
 enum ProfileUpdateError: LocalizedError {
     case conflictError(String)
     

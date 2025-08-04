@@ -26,7 +26,7 @@ struct ProfileView: View {
                 } else if let error = profileManager.error {
                     ErrorView(message: error.localizedDescription) {
                         Task {
-                            try await profileManager.fetchProfile()
+                            await profileManager.fetchProfile()
                             await profileManager.fetchAlerts()
                         }
                     }

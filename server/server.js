@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const mongoose = require('mongoose')
 const User = require('./models/User')
 const validator = require('validator')
+const Alert = require('./models/User')
 app.use(express.json())
 
 
@@ -91,7 +92,6 @@ app.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(req.body.password, salt)
         const user = new User({username: req.body.username, email: req.body.email, password: hashedPassword})
 
-
         const accessToken = generateAccessToken(user)
         const refreshToken = jwt.sign(
             { userId: user._id },
@@ -113,9 +113,10 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     try {
+        console.log("Logging in")
         const data = {email: req.body.email, password: req.body.password}
         const user = await User.findOne({email: data.email})
-
+        console.log("Found user: ", user)
         if (!user) {
             return res.status(404).send('User not found')
         }
@@ -125,7 +126,6 @@ app.post('/login', async (req, res) => {
             const refreshToken = jwt.sign({email: user.email, username: user.username}, process.env.REFRESH_TOKEN_SECRET)
             user.refreshToken = refreshToken
             await user.save()
-            console.log("Login successful")
             return res.status(200).send({
                 message: 'Login successful',
                 accessToken: accessToken,
@@ -139,9 +139,29 @@ app.post('/login', async (req, res) => {
     }
 })
 
+
+app.post('/alerts/create', authenticateToken, async (req, res) => {
+    try {
+        const data = {title: req.body.title, description: req.body.description, type: req.body.alertType, location: req.body.location, media: req.body.media}
+        console.log(data)
+        if (!data.title || !data.type) {
+            return res.status(400).send("Fill the all fields")
+        }
+        data.createdBy = req.createdBy.userId 
+        const alert = new Alert(data)
+        await alert.save()
+        return res.status(201).json({ message: "Alert created", alert });
+
+    } catch {
+        console.log("Error")
+        return res.status(500).send()
+    }
+}) 
+
+
 function generateAccessToken(user) {
     return jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: '10s'
+        expiresIn: '15m'
     })
 }
 
@@ -156,6 +176,7 @@ function authenticateToken(req, res, next) {
     
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
         if (err) {
+            console.log(token)
             console.error('JWT verification failed:', err.message);
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
