@@ -6,7 +6,8 @@ const jwt = require('jsonwebtoken')
 const mongoose = require('mongoose')
 const User = require('./models/User')
 const validator = require('validator')
-const Alert = require('./models/User')
+const Alert = require('./models/Alert')
+const generateUploadS3URL = require('./image-upload')
 app.use(express.json())
 
 
@@ -159,6 +160,18 @@ app.post('/alerts/create', authenticateToken, async (req, res) => {
 }) 
 
 
+app.put('/media/upload', async (req, res) => {
+    try {
+      const contentType = req.query.contentType || 'image/jpeg'
+      const { uploadURL, key } = await generateUploadS3URL(contentType)
+      return res.status(200).json({ uploadURL, key, contentType })
+    } catch (e) {
+      console.error('Presign error', e)
+      return res.status(500).json({ message: 'Failed to create upload URL' })
+    }
+})
+
+
 function generateAccessToken(user) {
     return jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '15m'
@@ -185,6 +198,9 @@ function authenticateToken(req, res, next) {
     });
     
 }
+
+
+
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB connected"))

@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.863.0",
+    "@aws-sdk/s3-request-presigner": "^3.863.0",
+    "crypto": "^1.0.1",
+    "promisify": "^0.0.3"
+  }
+}
