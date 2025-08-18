@@ -6,7 +6,12 @@ const alertSchema = new mongoose.Schema({
     required: true
   },
   description: String,
-  mediaUrl: String,         
+  media: [
+    {
+      type: String,
+      trim: true,
+      maxlength: 2048 }
+  ],
   mediaType: String,        
   likes: {
     type: Number,
@@ -29,7 +34,7 @@ const alertSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  userId: {
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true

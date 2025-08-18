@@ -1,6 +1,6 @@
 // JavaScript
 require('dotenv').config()
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
 const crypto = require('crypto')
 const { promisify } = require('util')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
@@ -22,12 +22,19 @@ async function generateUploadS3URL(contentType = 'image/jpeg') {
   const command = new PutObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,
-    // ACL: 'public-read'
     ContentType: contentType
   })
 
   const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 })
-  return { uploadURL, key }
+
+  const getCommand = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key
+  })
+
+  const fileURL = await getSignedUrl(s3, getCommand, { expiresIn: 60 })
+
+  return { uploadURL, key, fileURL }
 }
 
 module.exports = generateUploadS3URL

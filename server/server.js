@@ -22,7 +22,7 @@ app.get('/profile', authenticateToken, async (req, res) => {
 })
 
 app.put('/profile/update', authenticateToken, async (req, res) => {
-    console.log("Updating user profile")
+    // console.log("Updating user profile")
 
     // check if email or username exist already
     const existingUser = await User.findOne({
@@ -47,14 +47,14 @@ app.put('/profile/update', authenticateToken, async (req, res) => {
 
 app.post('/token', async (req, res) => {
     const { refreshToken } = req.body
-
+    // console.log("Refresh Token", refreshToken)
     if (!refreshToken) return res.status(401).send('Refresh token required');
     const user = await User.findOne({ refreshToken: refreshToken })
+    // console.log(user)
     if (!user) return res.status(403).send("Invalid refresh token");
 
     jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
         if (err) return res.status(403).send('Invalid refresh token');
-        const user = await User.findById(decoded.userId);
         if (!user || user.refreshToken !== refreshToken) {
             return res.status(403).send("Invalid refresh token");
         }
@@ -114,10 +114,10 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     try {
-        console.log("Logging in")
+        // console.log("Logging in")
         const data = {email: req.body.email, password: req.body.password}
         const user = await User.findOne({email: data.email})
-        console.log("Found user: ", user)
+        // console.log("Found user: ", user)
         if (!user) {
             return res.status(404).send('User not found')
         }
@@ -144,27 +144,39 @@ app.post('/login', async (req, res) => {
 app.post('/alerts/create', authenticateToken, async (req, res) => {
     try {
         const data = {title: req.body.title, description: req.body.description, type: req.body.alertType, location: req.body.location, media: req.body.media}
-        console.log(data)
         if (!data.title || !data.type) {
             return res.status(400).send("Fill the all fields")
         }
-        data.createdBy = req.createdBy.userId 
+        data.createdBy = req.user.userId 
         const alert = new Alert(data)
         await alert.save()
-        return res.status(201).json({ message: "Alert created", alert });
+        return res.status(201).json({ message: "Alert created" });
 
-    } catch {
-        console.log("Error")
+    } catch (error) {
+        console.log(error)
+
         return res.status(500).send()
     }
 }) 
 
+app.get('/alerts/get', authenticateToken, async (req, res) => {
+    try {
+        console.log(req.user.userId)
+        const alerts = await Alert.find({createdBy: req.user.userId})
+        console.log("Alerts:", alerts)
+        return res.status(200).json({alerts})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).send()
+    }
+})
 
-app.put('/media/upload', async (req, res) => {
+
+app.put('/media/presigned-url', authenticateToken, async (req, res) => {
     try {
       const contentType = req.query.contentType || 'image/jpeg'
-      const { uploadURL, key } = await generateUploadS3URL(contentType)
-      return res.status(200).json({ uploadURL, key, contentType })
+      const { uploadURL, key, fileURL } = await generateUploadS3URL(contentType)
+      return res.status(200).json({ uploadURL, key, fileURL })
     } catch (e) {
       console.error('Presign error', e)
       return res.status(500).json({ message: 'Failed to create upload URL' })
@@ -189,7 +201,6 @@ function authenticateToken(req, res, next) {
     
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
         if (err) {
-            console.log(token)
             console.error('JWT verification failed:', err.message);
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
@@ -198,9 +209,6 @@ function authenticateToken(req, res, next) {
     });
     
 }
-
-
-
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB connected"))
