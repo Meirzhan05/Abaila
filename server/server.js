@@ -161,8 +161,15 @@ app.post('/alerts/create', authenticateToken, async (req, res) => {
 
 app.get('/media/getSignedUrl', authenticateToken, async (req, res) => {
     let result = []
-    for (const [key, value] of Object.entries(req.query)) {
-        const url = await getPreSignedURL(value)
+    let keys
+    try {
+        keys = JSON.parse(req.query.keys)
+    } catch (parseError) {
+        return res.status(400).json({ error: 'Invalid JSON format for keys parameter' })
+    }
+    for (const key of keys) {
+        console.log(key)
+        const url = await getPreSignedURL(key)
         result.push(url)
     }
     console.log(result)

@@ -135,8 +135,11 @@ class MediaManager: ObservableObject {
         components.host = "localhost"
         components.port = 3000
         components.path = "/media/getSignedUrl"
-        components.queryItems = keys.map { URLQueryItem(name: "key", value: $0) }
-        print("keys:", keys)
+        let jsonData = try JSONSerialization.data(withJSONObject: keys)
+        let jsonString = String(data: jsonData, encoding: .utf8) ?? ""
+        components.queryItems = [URLQueryItem(name: "keys", value: jsonString)]
+
+
         guard let url = components.url else {
             throw MediaError.invalidResponse
         }
