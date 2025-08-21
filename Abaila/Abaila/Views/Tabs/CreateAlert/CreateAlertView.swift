@@ -19,7 +19,6 @@ struct CreateAlertView: View {
     var body: some View {
         NavigationStack {
             contentView
-                .navigationTitle("Create Alert")
                 .navigationBarTitleDisplayMode(.inline)
                 .alert("Alert Created", isPresented: $showingSuccessAlert) {
                     Button("OK") {
@@ -54,9 +53,7 @@ struct CreateAlertView: View {
             LoadingView()
         } else if let error = alertManager.error {
             ErrorView(message: error.localizedDescription) {
-                Task {
-                    await createAlert()
-                }
+                return resetForm()
             }
         } else {
             CreateAlertContentView(
@@ -64,7 +61,8 @@ struct CreateAlertView: View {
                 description: $description,
                 selectedAlertType: $selectedAlertType,
                 customLocation: $customLocation,
-                alertManager: alertManager
+                alertManager: alertManager,
+                mediaManager: MediaManager(authViewModel: authViewModel)
             )
         }
     }
@@ -80,22 +78,7 @@ struct CreateAlertView: View {
             showingSuccessAlert = true
         }
     }
-    
-    private func createAlert() async {
-        guard let alertManager = alertManager else { return }
-        let location = customLocation.isEmpty ? "Current Location" : customLocation
-        do {
-            try await alertManager.createAlert(
-                title: title,
-                description: description,
-                alertType: selectedAlertType,
-                location: location
-            )
-        } catch {
-            print("Failed to create alert: \(error)")
-        }
-    }
-    
+        
     private func resetForm() {
         title = ""
         description = ""

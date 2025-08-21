@@ -58,6 +58,7 @@ class AuthViewModel: ObservableObject {
                     }
                     throw URLError(.userAuthenticationRequired)
                 }
+                print(refreshToken)
                 
                 // if refresh token exists
                 

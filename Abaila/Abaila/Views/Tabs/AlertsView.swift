@@ -48,7 +48,6 @@ struct AlertsView: View {
                   .padding()
                 }
             }
-            .navigationTitle("Alerts")
             .navigationBarTitleDisplayMode(.large)
         }
     }

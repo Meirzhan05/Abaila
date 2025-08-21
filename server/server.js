@@ -7,7 +7,8 @@ const mongoose = require('mongoose')
 const User = require('./models/User')
 const validator = require('validator')
 const Alert = require('./models/Alert')
-const generateUploadS3URL = require('./image-upload')
+const { generateUploadS3URL, getPreSignedURL } = require('./image-upload')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 app.use(express.json())
 
 
@@ -143,28 +144,43 @@ app.post('/login', async (req, res) => {
 
 app.post('/alerts/create', authenticateToken, async (req, res) => {
     try {
-        const data = {title: req.body.title, description: req.body.description, type: req.body.alertType, location: req.body.location, media: req.body.media}
-        if (!data.title || !data.type) {
-            return res.status(400).send("Fill the all fields")
-        }
+        const data = {title: req.body.title, description: req.body.description, type: req.body.type, location: req.body.location, media: req.body.media}
         data.createdBy = req.user.userId 
+        console.log(data)
         const alert = new Alert(data)
         await alert.save()
         return res.status(201).json({ message: "Alert created" });
 
     } catch (error) {
+
         console.log(error)
 
         return res.status(500).send()
     }
 }) 
 
+app.get('/media/getSignedUrl', authenticateToken, async (req, res) => {
+    let result = []
+    for (const [key, value] of Object.entries(req.query)) {
+        const url = await getPreSignedURL(value)
+        result.push(url)
+    }
+    console.log(result)
+    return res.status(200).json(result)
+}) 
+
 app.get('/alerts/get', authenticateToken, async (req, res) => {
     try {
-        console.log(req.user.userId)
-        const alerts = await Alert.find({createdBy: req.user.userId})
-        console.log("Alerts:", alerts)
-        return res.status(200).json({alerts})
+        const alerts = await Alert.find({ createdBy: req.user.userId })
+        .populate('createdBy', 'username') // only username from User
+        .lean()
+
+        const result = alerts.map(({ createdBy, ...rest }) => ({
+            ...rest,
+            createdBy: createdBy.username, // string for client
+        }))
+
+        return res.status(200).json(result)
     } catch (error) {
         console.log(error)
         return res.status(500).send()
@@ -172,11 +188,11 @@ app.get('/alerts/get', authenticateToken, async (req, res) => {
 })
 
 
-app.put('/media/presigned-url', authenticateToken, async (req, res) => {
+app.put('/media/presigned-url', async (req, res) => {
     try {
       const contentType = req.query.contentType || 'image/jpeg'
-      const { uploadURL, key, fileURL } = await generateUploadS3URL(contentType)
-      return res.status(200).json({ uploadURL, key, fileURL })
+      const { uploadURL, key } = await generateUploadS3URL(contentType)
+      return res.status(200).json({ uploadURL, key })
     } catch (e) {
       console.error('Presign error', e)
       return res.status(500).json({ message: 'Failed to create upload URL' })

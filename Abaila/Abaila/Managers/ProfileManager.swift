@@ -8,43 +8,6 @@
 import SwiftUI
 import Combine
 
-struct Alert: Identifiable {
-    let alertId: String
-    var id = UUID()
-    let type: String
-    let icon: String
-    let title: String
-    let location: String
-    let time: String
-    let level: AlertLevel
-    let likes: Int
-    let comments: Int
-    let views: Int
-    let status: AlertStatus
-    let hasVideo: Bool
-}
-
-enum AlertLevel: String, CaseIterable {
-    case critical = "critical"
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
-    
-    var color: Color {
-        switch self {
-        case .critical: return Color(red: 0.863, green: 0.149, blue: 0.149)
-        case .high: return Color(red: 1.0, green: 0.231, blue: 0.188)
-        case .medium: return Color(red: 1.0, green: 0.584, blue: 0.0)
-        case .low: return Color(red: 1.0, green: 0.8, blue: 0.0)
-        }
-    }
-}
-
-enum AlertStatus {
-    case active
-    case resolved
-}
-
 
 class ProfileManager: ObservableObject {
     @Published var profile: UserProfile?
@@ -167,7 +130,7 @@ class ProfileManager: ObservableObject {
         request.httpBody = encoded
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 await MainActor.run {
                     isLoading = false
@@ -200,20 +163,6 @@ class ProfileManager: ObservableObject {
             }
             throw error
         }
-    }
-    func fetchAlerts() async {
-        let userAlerts: [Alert] = [
-            Alert(alertId: "fire_001", type: "fire", icon: "🔥", title: "Structure Fire Alert", location: "Oak Street & 5th Ave", time: "2h", level: .critical, likes: 124, comments: 18, views: 1560, status: .active, hasVideo: false),
-            Alert(alertId: "traffic_001", type: "traffic", icon: "🚧", title: "Road Closure", location: "Main Street Bridge", time: "1d", level: .medium, likes: 45, comments: 8, views: 890, status: .resolved, hasVideo: true),
-            Alert(alertId: "weather_001", type: "weather", icon: "⛈️", title: "Storm Warning", location: "Downtown Area", time: "3d", level: .high, likes: 89, comments: 25, views: 2340, status: .resolved, hasVideo: false),
-            Alert(alertId: "medical_001", type: "medical", icon: "🚑", title: "Medical Emergency", location: "Central Park", time: "1w", level: .high, likes: 67, comments: 12, views: 1230, status: .resolved, hasVideo: false),
-            Alert(alertId: "police_001", type: "police", icon: "🚔", title: "Police Activity", location: "Downtown Plaza", time: "2w", level: .medium, likes: 34, comments: 6, views: 980, status: .resolved, hasVideo: true),
-            Alert(alertId: "fire_002", type: "fire", icon: "🔥", title: "Kitchen Fire", location: "Elm Street", time: "3w", level: .low, likes: 23, comments: 4, views: 670, status: .resolved, hasVideo: false)
-        ]
-        await MainActor.run {
-            self.alerts = userAlerts
-        }
-        
     }
 } 
 enum ProfileUpdateError: LocalizedError {

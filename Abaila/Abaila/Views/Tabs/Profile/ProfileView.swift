@@ -1,21 +1,22 @@
-//
-//  ProfileView.swift
-//  Abaila
-//
-//  Created by Meirzhan Saparov on 7/13/25.
-//
-
+// ProfileView.swift
 import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var profileManager: ProfileManager
-    @State private var selectedAlert: Alert?
+    @StateObject private var alertManager: AlertManager
+    
+
+    @State private var selectedAlert: AlertResponse?
+    @State private var userAlerts: [AlertResponse] = []
+    
     @Environment(\.colorScheme) var colorScheme
     @State private var showEditProfile: Bool = false
+    
     init() {
-        let authViewModel = AuthViewModel()
-        _profileManager = StateObject(wrappedValue: ProfileManager(authViewModel: authViewModel))
+        let authVM = AuthViewModel()
+        _alertManager = StateObject(wrappedValue: AlertManager(authViewModel: authVM))
+        _profileManager = StateObject(wrappedValue: ProfileManager(authViewModel: authVM))
     }
     
     var body: some View {
@@ -27,14 +28,14 @@ struct ProfileView: View {
                     ErrorView(message: error.localizedDescription) {
                         Task {
                             await profileManager.fetchProfile()
-                            await profileManager.fetchAlerts()
+                            await loadAlerts()
                         }
                     }
                 } else if let profile = profileManager.profile {
                     ProfileContentView(
                         selectedAlert: $selectedAlert,
                         profile: profile,
-                        userAlerts: profileManager.alerts,
+                        userAlerts: userAlerts,
                         showEditProfile: $showEditProfile
                     )
                     .sheet(isPresented: $showEditProfile) {
@@ -49,10 +50,17 @@ struct ProfileView: View {
         }
         .task {
             await profileManager.fetchProfile()
-            await profileManager.fetchAlerts()
+            await loadAlerts()
         }
         .sheet(item: $selectedAlert) { alert in
             AlertDetailView(alert: alert)
+        }
+    }
+    
+    private func loadAlerts() async {
+        let alerts = await alertManager.getAlerts()
+        await MainActor.run {
+            self.userAlerts = alerts
         }
     }
 }
