@@ -127,19 +127,19 @@ struct ProfileContentView: View {
                         .background(Color(.systemBackground))
                     }
                     
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: 3), spacing: 1) {
                         ForEach(userAlerts) { alert in
                             AlertGridItem(alert: alert) {
                                 selectedAlert = alert
                             }
                             .aspectRatio(1, contentMode: .fit)
+                            .clipped()
                             .onAppear{
                                 print("Alert loaded: \(alert.media)")
                             }
                         }
                     }
-                    .padding(.top, 8)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 1)
                 }
             }
             .navigationBarHidden(true)
@@ -172,107 +172,113 @@ struct AlertGridItem: View {
     @State private var pressed = false
     
     var body: some View {
-        ZStack {
-            Group {
-                if let firstMedia = alert.signedMedia.first,
-                   let url = URL(string: firstMedia) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure(_):
-                            Color.gray.opacity(0.3)
-                        case .empty:
-                            ZStack {
-                                Color.gray.opacity(0.15)
-                                ProgressView()
+        GeometryReader { geometry in
+            ZStack {
+                // Background image/placeholder
+                Group {
+                    if let firstMedia = alert.signedMedia.first,
+                       let url = URL(string: firstMedia) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                    .clipped()
+                            case .failure(_):
+                                Color.gray.opacity(0.3)
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                            case .empty:
+                                ZStack {
+                                    Color.gray.opacity(0.15)
+                                    ProgressView()
+                                }
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                            @unknown default:
+                                Color.gray
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
                             }
-                        @unknown default:
-                            Color.gray
+                        }
+                    } else {
+                        placeholder
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    }
+                }
+                
+                // Overlays
+                VStack {
+                    HStack {
+                        // Type badge
+                        ZStack {
+                            Circle()
+                                .fill(alert.alertType.color.opacity(0.9))
+                                .frame(width: 24, height: 24)
+                            Image(systemName: alert.alertType.icon)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        // Multiple media indicator
+                        if alert.signedMedia.count > 1 {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.6))
+                                    .frame(width: 24, height: 24)
+                                Image(systemName: "photo.stack")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        } else if alert.isVideo {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.6))
+                                    .frame(width: 24, height: 24)
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
                         }
                     }
-                } else {
-                    placeholder
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .aspectRatio(1, contentMode: .fill)
-            .clipped()
-            
-            // Overlays
-            VStack {
-                HStack {
-                    // Type badge
-                    ZStack {
-                        Circle()
-                            .fill(alert.alertType.color.opacity(0.9))
-                            .frame(width: 30, height: 30)
-                        Image(systemName: alert.alertType.icon)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
+                    .padding(4)
                     
                     Spacer()
                     
-                    // Multiple media indicator
-                    if alert.signedMedia.count > 1 {
-                        ZStack {
-                            Circle()
-                                .fill(Color.black.opacity(0.55))
-                                .frame(width: 30, height: 30)
-                            Image(systemName: "photo.stack")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
+                    // Bottom gradient + stats
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(alert.title)
+                            .font(.system(size: 10, weight: .semibold))
+                            .lineLimit(1)
+                            .foregroundColor(.white)
+                            .shadow(radius: 1)
+                        
+                        HStack(spacing: 8) {
+                            stat(icon: "heart.fill", value: alert.likes)
+                            stat(icon: "message.fill", value: alert.comments)
+                            stat(icon: "eye.fill", value: alert.views)
+                            Spacer()
                         }
-                    } else if alert.isVideo {
-                        ZStack {
-                            Circle()
-                                .fill(Color.black.opacity(0.55))
-                                .frame(width: 30, height: 30)
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                        }
+                        .font(.system(size: 8))
                     }
-                }
-                .padding(6)
-                
-                Spacer()
-                
-                // Bottom gradient + stats
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(alert.title)
-                        .font(.caption2.weight(.semibold))
-                        .lineLimit(1)
-                        .foregroundColor(.white)
-                        .shadow(radius: 2)
-                    
-                    HStack(spacing: 10) {
-                        stat(icon: "heart.fill", value: alert.likes)
-                        stat(icon: "message.fill", value: alert.comments)
-                        stat(icon: "eye.fill", value: alert.views)
-                        Spacer()
-                    }
-                    .font(.system(size: 9))
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 6)
-                .background(
-                    LinearGradient(
-                        colors: [.black.opacity(0.0), .black.opacity(0.55)],
-                        startPoint: .top,
-                        endPoint: .bottom
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 4)
+                    .background(
+                        LinearGradient(
+                            colors: [.black.opacity(0.0), .black.opacity(0.7)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .allowsHitTesting(false)
                     )
-                    .allowsHitTesting(false)
-                )
+                }
             }
         }
-        .cornerRadius(10)
+        .cornerRadius(8)
         .contentShape(Rectangle())
-        .scaleEffect(pressed ? 0.94 : 1)
-        .animation(.easeInOut(duration: 0.12), value: pressed)
+        .scaleEffect(pressed ? 0.95 : 1)
+        .animation(.easeInOut(duration: 0.1), value: pressed)
         .onTapGesture { onTap() }
         .onLongPressGesture(minimumDuration: 0, pressing: { isPress in
             pressed = isPress
@@ -287,20 +293,15 @@ struct AlertGridItem: View {
         )
     }
     
-    private var progress: some View {
-        ZStack {
-            placeholder
-            ProgressView().progressViewStyle(.circular)
-        }
-    }
-    
     @ViewBuilder
     private func stat(icon: String, value: Int) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 1) {
             Image(systemName: icon)
+                .font(.system(size: 7))
             Text(shortFormat(value))
+                .font(.system(size: 8))
         }
-        .foregroundColor(.white.opacity(0.9))
+        .foregroundColor(.white.opacity(0.95))
     }
     
     private func shortFormat(_ n: Int) -> String {
@@ -309,7 +310,6 @@ struct AlertGridItem: View {
         return "\(n)"
     }
 }
-
 struct AlertDetailView: View {
     let alert: AlertResponse
     @Environment(\.dismiss) private var dismiss

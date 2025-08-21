@@ -1,6 +1,7 @@
 # Node.js
 server/node_modules/
 server/.env
+./node_modules
 
 # macOS and Xcode
 Abaila/DerivedData/
