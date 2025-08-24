@@ -16,7 +16,7 @@ class AlertManager: ObservableObject {
     func createAlert(title: String,
                      description: String,
                      alertType: AlertType,
-                     location: String,
+                     location: GeoJSONPoint,
                      media: [String]) async throws {
 
         await MainActor.run {

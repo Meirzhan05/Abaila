@@ -18,7 +18,7 @@ struct CreateAlertContentView: View {
     
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var mediaManager: MediaManager
-    
+    @Environment(LocationManager.self) var locationManager
     @State private var useCurrentLocation = true
     @State private var isSubmitting = false
     @State private var mediaItems: [PhotosPickerItem] = []
@@ -459,7 +459,19 @@ struct CreateAlertContentView: View {
                     mediaURLs = try await mediaManager.uploadMedia(selectedMedia)
                 }
                 
-                let location = useCurrentLocation ? "Current Location" : customLocation
+                let location: GeoJSONPoint
+                if useCurrentLocation {
+                    if let userLocation = locationManager.userLocation {
+                        location = GeoJSONPoint(longitude: userLocation.coordinate.longitude, latitude: userLocation.coordinate.latitude)
+                    } else {
+                        // Fallback if location is not available
+                        throw NSError(domain: "LocationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Location unavailable"])
+                    }
+                } else {
+                    // For custom location, you might need to geocode the address to get coordinates
+                    // For now, using a placeholder - you should implement geocoding
+                    location = GeoJSONPoint(longitude: 0.0, latitude: 0.0)
+                }
                 
                 try await alertManager.createAlert(
                     title: title,

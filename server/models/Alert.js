@@ -29,7 +29,17 @@ const alertSchema = new mongoose.Schema({
     type: String,           
     required: true
   },
-  location: String,
+  location: {
+    type: {
+      type: String, // "Point"
+      enum: ["Point"],
+      required: true
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

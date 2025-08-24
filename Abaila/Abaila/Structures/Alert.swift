@@ -3,18 +3,18 @@ import Foundation
 import SwiftUI
 
 struct AlertResponse: Codable, Identifiable {
-    let id: String          // _id from Mongo
+    let id: String
     let title: String
     let description: String?
     let media: [String]
-    let mediaType: String?  // optional in schema
+    let mediaType: String?
     let likes: Int
     let comments: Int
     let views: Int
-    let alertType: AlertType   // stored in "type"
-    let location: String?
+    let alertType: AlertType
+    let location: GeoJSONPoint?  // Changed from String? to GeoJSONPoint?
     let createdAt: Date
-    let createdBy: String      // ObjectId as hex string
+    let createdBy: String
     var signedMedia: [String] = []
     
     private enum CodingKeys: String, CodingKey {
@@ -57,12 +57,23 @@ struct AlertResponse: Codable, Identifiable {
         return d
     }
 }
+
 struct AlertCreateRequest: Codable {
     let title: String
     let description: String
     let type: AlertType
-    let location: String
+    let location: GeoJSONPoint
     let media: [String]?
+}
+
+struct GeoJSONPoint: Codable {
+    let type: String
+    let coordinates: [Double]
+    
+    init(longitude: Double, latitude: Double) {
+        self.type = "Point"
+        self.coordinates = [longitude, latitude]
+    }
 }
 enum AlertManagerError: Error {
     case notAuthenticated

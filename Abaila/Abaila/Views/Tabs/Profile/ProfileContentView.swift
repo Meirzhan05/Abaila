@@ -417,13 +417,23 @@ struct AlertDetailView: View {
                 .font(.title2.bold())
             HStack(spacing: 8) {
                 Image(systemName: "mappin.and.ellipse")
-                Text(alert.location ?? "Unknown location")
+                Text(locationDisplayText)
                 Text("•")
                 Text(alert.relativeTime)
             }
             .font(.subheadline)
             .foregroundColor(.secondary)
         }
+    }
+
+    private var locationDisplayText: String {
+        if let location = alert.location {
+            // Format coordinates for display
+            let latitude = location.coordinates[1]
+            let longitude = location.coordinates[0]
+            return String(format: "%.4f, %.4f", latitude, longitude)
+        }
+        return "Unknown location"
     }
     
     private var statsSection: some View {

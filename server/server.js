@@ -146,7 +146,8 @@ app.post('/alerts/create', authenticateToken, async (req, res) => {
     try {
         const data = {title: req.body.title, description: req.body.description, type: req.body.type, location: req.body.location, media: req.body.media}
         data.createdBy = req.user.userId 
-        console.log(data)
+        console.log("Alert:", data)
+
         const alert = new Alert(data)
         await alert.save()
         return res.status(201).json({ message: "Alert created" });
