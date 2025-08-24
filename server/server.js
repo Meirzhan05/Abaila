@@ -146,8 +146,6 @@ app.post('/alerts/create', authenticateToken, async (req, res) => {
     try {
         const data = {title: req.body.title, description: req.body.description, type: req.body.type, location: req.body.location, media: req.body.media}
         data.createdBy = req.user.userId 
-        console.log("Alert:", data)
-
         const alert = new Alert(data)
         await alert.save()
         return res.status(201).json({ message: "Alert created" });
@@ -169,11 +167,9 @@ app.get('/media/getSignedUrl', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'Invalid JSON format for keys parameter' })
     }
     for (const key of keys) {
-        console.log(key)
         const url = await getPreSignedURL(key)
         result.push(url)
     }
-    console.log(result)
     return res.status(200).json(result)
 }) 
 
@@ -187,6 +183,7 @@ app.get('/alerts/get', authenticateToken, async (req, res) => {
             ...rest,
             createdBy: createdBy.username, // string for client
         }))
+        console.log("Fetching alerts ...", result)
 
         return res.status(200).json(result)
     } catch (error) {

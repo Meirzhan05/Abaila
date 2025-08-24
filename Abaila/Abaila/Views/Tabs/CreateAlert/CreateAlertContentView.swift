@@ -461,8 +461,15 @@ struct CreateAlertContentView: View {
                 
                 let location: GeoJSONPoint
                 if useCurrentLocation {
-                    if let userLocation = locationManager.userLocation {
-                        location = GeoJSONPoint(longitude: userLocation.coordinate.longitude, latitude: userLocation.coordinate.latitude)
+                    if locationManager.userLocation != nil {
+                        if let userLocation = locationManager.userLocation {
+                            let lat = Double(round(1000 * userLocation.coordinate.latitude) / 1000)
+                            let lon = Double(round(1000 * userLocation.coordinate.longitude) / 1000)
+                            location = GeoJSONPoint(longitude: lon, latitude: lat)
+                        } else {
+                            // Fallback if location is not available
+                            throw NSError(domain: "LocationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Location unavailable"])
+                        }
                     } else {
                         // Fallback if location is not available
                         throw NSError(domain: "LocationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Location unavailable"])

@@ -15,7 +15,7 @@ struct ContentView: View {
         if authViewModel.isAuthenticated {
             TabView {
                 Tab("Map", systemImage: "map") {
-                    MapView()
+                    MapView(authViewModel: authViewModel)
                 }
                 
                 Tab("Create Alert", systemImage: "plus.circle.fill") {
