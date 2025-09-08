@@ -126,6 +126,3 @@ Relevant backend file:
 
 - `npm run devStart` — start the backend with nodemon
 
-### License
-
-This project is for personal/educational use. Replace with your desired license.
