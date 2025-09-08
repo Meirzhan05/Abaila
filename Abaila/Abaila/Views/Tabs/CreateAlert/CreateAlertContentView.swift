@@ -461,7 +461,7 @@ struct CreateAlertContentView: View {
                 
                 let location: GeoJSONPoint
                 if useCurrentLocation {
-                    if locationManager.userLocation != nil {
+                    if let userLocation = locationManager.userLocation {
                         if let userLocation = locationManager.userLocation {
                             let lat = Double(round(1000 * userLocation.coordinate.latitude) / 1000)
                             let lon = Double(round(1000 * userLocation.coordinate.longitude) / 1000)

@@ -9,9 +9,66 @@ const validator = require('validator')
 const Alert = require('./models/Alert')
 const { generateUploadS3URL, getPreSignedURL } = require('./image-upload')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+const { createClient } = require('redis')
+const apn = require('apn')
 app.use(express.json())
 
+const redis = createClient({ url: process.env.REDIS_URL })
+redis.on('error', (err) => console.error('❌ Redis error:', err))
+;(async () => {
+  try {
+    await redis.connect()
+    console.log('✅ Redis connected')
+  } catch (e) {
+    console.error('❌ Redis connection error:', e)
+  }
+})()
 
+const APNS_BUNDLE_ID = process.env.APNS_BUNDLE_ID
+const apnsTokenKey = process.env.APNS_KEY
+const apnsTokenKeyPath = process.env.APNS_KEY_PATH
+const apnsOptions = {
+  token: {
+    key: apnsTokenKey ? Buffer.from(apnsTokenKey, 'base64') : apnsTokenKeyPath, // either base64 key or path to .p8
+    keyId: process.env.APNS_KEY_ID,
+    teamId: process.env.APNS_TEAM_ID
+  },
+  production: process.env.APNS_PRODUCTION === 'true'
+}
+const apnsProvider = new apn.Provider(apnsOptions)
+
+async function registerApnsDevice(userId, deviceToken) {
+  return redis.sAdd(`apns:devices:${userId}`, deviceToken)
+}
+async function getApnsDevices(userId) {
+  return redis.sMembers(`apns:devices:${userId}`)
+}
+async function sendApnsToUser(userId, alertDoc) {
+  try {
+    const tokens = await getApnsDevices(userId)
+    if (!tokens || tokens.length === 0) return
+
+    const note = new apn.Notification()
+    note.topic = APNS_BUNDLE_ID
+    note.alert = {
+      title: alertDoc.title,
+      body: alertDoc.description
+    }
+    note.payload = {
+      alertId: alertDoc._id?.toString?.(),
+      type: alertDoc.type
+    }
+    note.sound = 'default'
+    note.mutableContent = 1
+
+    const result = await apnsProvider.send(note, tokens)
+    if (result.failed && result.failed.length) {
+      console.warn('APNs failed:', result.failed.map(f => f.response?.reason || f.error?.message))
+    }
+  } catch (e) {
+    console.error('APNs send error:', e)
+  }
+}
 
 app.get('/profile', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.userId)
@@ -141,6 +198,20 @@ app.post('/login', async (req, res) => {
     }
 })
 
+// NEW: Register APNs device token for current user
+app.post('/devices/apns/register', authenticateToken, async (req, res) => {
+    const { deviceToken } = req.body
+    if (!deviceToken || !/^[0-9a-fA-F]{64}$/.test(deviceToken)) {
+        return res.status(400).json({ message: 'Invalid device token' })
+    }
+    try {
+        await registerApnsDevice(req.user.userId, deviceToken)
+        return res.status(200).json({ message: 'Device registered' })
+    } catch (e) {
+        console.error('APNs register error:', e)
+        return res.status(500).json({ message: 'Failed to register device' })
+    }
+})
 
 app.post('/alerts/create', authenticateToken, async (req, res) => {
     try {
@@ -148,6 +219,8 @@ app.post('/alerts/create', authenticateToken, async (req, res) => {
         data.createdBy = req.user.userId 
         const alert = new Alert(data)
         await alert.save()
+        // NEW: Send APNs to the current user's devices
+        await sendApnsToUser(req.user.userId, alert)
         return res.status(201).json({ message: "Alert created" });
 
     } catch (error) {
@@ -230,6 +303,16 @@ function authenticateToken(req, res, next) {
     });
     
 }
+
+// NEW: Graceful shutdown
+function shutdown() {
+  Promise.allSettled([
+    (async () => { try { await redis.quit() } catch (_) {} })(),
+    (async () => { try { apnsProvider.shutdown() } catch (_) {} })()
+  ]).finally(() => process.exit(0))
+}
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("✅ MongoDB connected"))

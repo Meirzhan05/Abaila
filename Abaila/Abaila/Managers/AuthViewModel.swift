@@ -149,6 +149,9 @@ class AuthViewModel: ObservableObject {
                     print("Login successful")
                     self.isAuthenticated = true
                 }
+                // After login succeeds, try syncing APNs token
+                PushNotificationManager.shared.registerForPushNotifications()
+                PushNotificationManager.shared.syncTokenIfPossible()
             } else {
                 // Handle non-success status codes
                 print("Login failed with status code: \(httpResponse?.statusCode ?? 0)")

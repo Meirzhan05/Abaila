@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import UIKit
 
 @main
 struct AbailaApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var locationManager = LocationManager()
     @StateObject private var authViewModel = AuthViewModel()
     
@@ -21,6 +23,8 @@ struct AbailaApp: App {
                     .task {
                         do {
                             try await authViewModel.authenticationStatus()
+                            PushNotificationManager.shared.registerForPushNotifications()
+                            PushNotificationManager.shared.syncTokenIfPossible()
                         } catch {
                             print("Authentication check failed: \(error)")
                         }
